@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      background-color: #FCE4EC; /* Color rosado claro de fondo */
+    }
+    #container {
+      margin: 0 auto;
+      padding: 20px;
+      border: 5px solid black; /* Bordes negros */
+      background-color: #FFF8E1; /* Color crema claro de fondo */
+      width: 90%; /* Ancho del contenedor */
+      position: relative;
+    }
+    h1 {
+      text-align: left;
+      font-size: 44px;
+      font-family: 'Times New Roman', Times, serif;
+    }
+    #foodSelection {
+      float: left;
+      width: 50%; /* Doble de grande */
+      border-bottom: 5px solid #FFF8E1; /* Línea de separación en la parte inferior del mismo color del fondo */
+      padding-bottom: 10px; /* Espacio entre el cuadro de selección de alimentos y la línea de separación */
+    }
+    #foodList {
+      width: 100%; /* Doble de grande */
+      font-size: 38px; /* Tamaño de letra 38 */
+      font-weight: bold; /* Negrita */
+    }
+    #portionSpecification {
+      clear: both;
+      margin-top: 20px;
+    }
+    #portionSpecification label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 38px; /* Tamaño de letra 38 */
+      font-family: 'Times New Roman', Times, serif;
+    }
+    #portionInput {
+      width: calc(20%); /* Ancho del cuadro de texto menos el ancho del botón */
+      float: left;
+      font-size: 38px; /* Tamaño de letra 38 */
+      font-weight: bold; /* Negrita */
+    }
+    #portionSpecification .error-message {
+      color: red;
+      float: left;
+      margin-left: 20px;
+      display: none; /* Ocultar mensaje de error por defecto */
+      font-size: 28px; /* Tamaño de letra 28 */
+      font-weight: bold; /* Negrita */
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 5px; /* Espacio de separación entre la tabla y el cuadro de porciones */
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+      font-size: 28px; /* Tamaño de letra 28 */
+    }
+    th {
+      background-color: #FFD180; /* Color naranja claro */
+      font-weight: bold;
+      font-size: 38px; /* Tamaño de letra 38 */
+    }
+    .data-row:nth-child(even) {
+      background-color: #ffffff; /* Fondo blanco para filas pares */
+    }
+    .data-row:nth-child(odd) {
+      background-color: #ffffff; /* Fondo blanco para filas impares */
+    }
+    .invisible {
+      display: none; /* Ocultar el elemento */
+    }
+    .separator {
+      height: 5px; /* Altura del espacio separador */
+      background-color: #FFF8E1; /* Color crema claro */
+      margin-bottom: 10px; /* Espacio entre los elementos */
+    }
+    .logo {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 30%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Sustitución de alimentos</h1>
+    <img src="https://i.ibb.co/FDPdgYm/Picture1.png" class="logo" alt="Logo del proyecto">
+    <div id="foodSelection">
+      <label for="foodList" style="font-size: 38px; font-weight: bold;">Selecciona el alimento:</label>
+      <select id="foodList" onchange="populateFoodList()" style="font-size: 28px; font-weight: bold;">
+        <!-- Opciones de alimentos se cargarán dinámicamente desde Google Sheets -->
+      </select>
+    </div>
+    <div class="separator" style="background-color: #FFF8E1; height: 5px; clear: both;"></div> <!-- Espacio separador -->
+
+    <div id="portionSpecification">
+      <label for="portionInput" style="font-size: 38px; font-weight: bold;">Especifica las porciones (<span id="portionLabel"></span>):</label>
+      <input type="text" id="portionInput" oninput="validatePortionInput()" style="font-size: 28px; font-weight: bold;">
+      <div class="error-message" style="font-size: 28px; font-weight: bold;">Solo se permiten números</div>
+    </div>
+
+    <div class="separator" style="background-color: #FFF8E1; height: 5px; clear: both;"></div> <!-- Espacio separador -->
+    <div class="separator" style="background-color: #FFF8E1; height: 5px; clear: both;"></div> <!-- Espacio separador -->
+
+    <table id="foodDetailsTable">
+      <!-- La tabla se llenará con los detalles del alimento seleccionado -->
+      <tr>
+        <th style="background-color: #FFD180;">Alternativas</th>
+        <th style="background-color: #FFD180;">Porción</th>
+        <th style="background-color: #FFD180;">Medida</th>
+        <th style="background-color: #FFD180;">Notas</th>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    // Función para cargar la lista de alimentos desde Google Sheets
+    function loadFoodList() {
+      google.script.run.withSuccessHandler(populateFoodList).getFoodList();
+    }
+  
+    // Función para llenar la lista desplegable con los alimentos
+    function populateFoodList(foods) {
+      var select = document.getElementById("foodList");
+      select.innerHTML = "";
+      for (var i = 0; i < foods.length; i++) {
+        var option = document.createElement("option");
+        option.value = foods[i][0];
+        option.text = foods[i][0];
+        select.appendChild(option);
+      }
+      updateSelectedFoodRow(); // Actualizar la fila seleccionada después de cargar la lista
+    }
+  
+    // Función para mostrar el nombre del alimento y la descripción de las porciones
+    function updateSelectedFoodRow() {
+      var selectedFood = document.getElementById("foodList").value;
+      google.script.run.withSuccessHandler(displaySelectedFoodRow).getFoodDetails(selectedFood);
+    }
+  
+    // Función para mostrar el nombre del alimento y la descripción de las porciones
+    function displaySelectedFoodRow(data) {
+      // Actualizar el texto dentro del paréntesis con la descripción de las porciones
+      document.getElementById("portionLabel").textContent = data[1];
+      // Llenar la tabla con los detalles del alimento seleccionado
+      populateFoodDetailsTable(data);
+    }
+  
+    // Función para llenar la tabla con los detalles del alimento seleccionado
+    function populateFoodDetailsTable(data) {
+      var table = document.getElementById("foodDetailsTable");
+      table.innerHTML = ""; // Limpiar la tabla antes de llenarla
+  
+      // Crear la fila de encabezados
+      var headerRow = table.insertRow();
+      var headers = ["Alternativas", "Porción", "Medida", "Notas"];
+      for (var i = 0; i < headers.length; i++) {
+        var headerCell = headerRow.insertCell();
+        headerCell.textContent = headers[i];
+        headerCell.style.backgroundColor = "#FFD180"; // Fondo naranja claro para los títulos
+      }
+  
+      // Llenar la tabla con los detalles del alimento seleccionado
+      for (var j = 0; j < 10; j++) {
+        var row = table.insertRow();
+        row.className = "data-row"; // Agregar clase para identificar las filas de datos
+        if (data[6 + j]) { // Verificar si la primera columna de la fila tiene contenido
+          for (var k = 0; k < 4; k++) {
+            var cell = row.insertCell();
+            if (k === 0) {
+              cell.textContent = data[6 + j];
+            } else if (k === 1) {
+              // Multiplicar el dato por el número de porciones, si es un número válido
+              var portionInput = document.getElementById("portionInput").value;
+              var calculatedValue = portionInput !== "" ? data[17 + j] * parseInt(portionInput) : "";
+              cell.textContent = portionInput !== "" ? parseFloat(calculatedValue).toFixed(2) : "";
+            } else if (k === 2) {
+              cell.textContent = data[28 + j];
+            } else if (k === 3) {
+              cell.textContent = data[39 + j];
+            }
+            // Ajustar el estilo de fondo de la celda según el contenido
+            setCellBackground(cell, k);
+          }
+        } else {
+          row.style.display = "none"; // Ocultar la fila si la primera columna está vacía
+        }
+      }
+    }
+  
+    // Función para validar que solo se ingresen números en el cuadro de texto de porciones
+    function validatePortionInput() {
+      var input = document.getElementById("portionInput").value;
+      var errorMessage = document.querySelector(".error-message");
+      if (!/^\d*$/.test(input)) {
+        errorMessage.style.display = "block";
+      } else {
+        errorMessage.style.display = "none";
+        // Actualizar la tabla cuando se ingresa un número válido en el cuadro de porciones
+        updateSelectedFoodRow();
+      }
+    }
+  
+    // Función para ajustar el estilo de fondo de las celdas de la tabla
+    function setCellBackground(cell, columnIndex) {
+      if (columnIndex !== 3) { // Si no es la cuarta columna (Notas)
+        cell.style.backgroundColor = "#ffffff"; // Fondo blanco para las celdas
+      }
+    }
+  
+    // Cargar la lista de alimentos al cargar la página
+    window.onload = function() {
+      loadFoodList();
+    };
+  </script>
+</body>
+</html>
